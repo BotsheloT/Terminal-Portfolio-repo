@@ -139,6 +139,11 @@ html, body {
   &__sep { color: $text-muted; }
 }
 
+// {RIDDLE MODE} label inside the riddle prompt — same colour as prompt text
+.prompt-label__riddle {
+  color: $purple-soft;
+}
+
 .fake-input {
   display: flex;
   align-items: center;
