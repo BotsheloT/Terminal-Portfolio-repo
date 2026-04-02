@@ -10,7 +10,7 @@
 
 <div id="terminal-root">
 
-  <!-- Banner -->
+  <!-- Banner — sits at the top, scrolls away as history grows -->
   <div class="banner-area">
     <div class="banner-area__row">
       <pre class="banner-area__mac"  id="banner-mac"></pre>
@@ -22,8 +22,9 @@
     </p>
   </div>
 
-  <!-- Output + inline input -->
+  <!-- Output: grows downward as commands are typed -->
   <div class="output-area" id="output">
+
     <!-- Normal prompt -->
     <div class="input-inline" id="input-line">
       <span class="prompt-label">visitor@btdev.com<span class="prompt-label__sep">:~$</span></span>

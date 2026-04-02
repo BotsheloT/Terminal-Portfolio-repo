@@ -19,10 +19,10 @@ $mono:        'Courier New', Courier, monospace;
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
+  min-height: 100%;
   background: $bg;
+  overflow-y: auto;      // body scrolls — like a real terminal
+  overflow-x: hidden;
 }
 
 // ── Terminal root ────────────────────────────────────────────────────────────
@@ -31,18 +31,15 @@ html, body {
   color: $text;
   font-family: $mono;
   font-size: 13px;
-  height: 100vh;
-  width: 100vw;
-  display: flex;
-  flex-direction: column;
+  min-height: 100vh;     // fills viewport but grows with content
+  display: block;        // plain block — content stacks top to bottom
+  padding-bottom: 6px;
 }
 
 // ── Banner ───────────────────────────────────────────────────────────────────
 .banner-area {
   background: $bg;
   padding: 20px 28px 10px;
-  flex-shrink: 0;
-  overflow-x: auto;
 
   &__row {
     display: flex;
@@ -94,13 +91,12 @@ html, body {
 
 // ── Output area ──────────────────────────────────────────────────────────────
 .output-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 28px 10px;
-  display: flex;
-  flex-direction: column;
+  padding: 0 28px 10px;
+  display: block;   // plain block — lines stack naturally like terminal output
+}
 
-  // custom scrollbar
+// custom scrollbar on body
+body {
   &::-webkit-scrollbar        { width: 4px; }
   &::-webkit-scrollbar-track  { background: $bg; }
   &::-webkit-scrollbar-thumb  { background: $surface; border-radius: 2px; }

@@ -102,7 +102,7 @@ function esc(s) {
 
 // Always scroll output to the very bottom after DOM updates
 function scrollToBottom() {
-  requestAnimationFrame(() => { output.scrollTop = output.scrollHeight; });
+  requestAnimationFrame(() => window.scrollTo({ top: document.body.scrollHeight }));
 }
 
 function hideInput() {
@@ -297,8 +297,11 @@ function cmdContact() {
 }
 
 function cmdClear() {
-  while (output.firstChild !== inputLine) output.removeChild(output.firstChild);
+  while (output.firstChild !== inputLine && output.firstChild !== riddleInputLine) {
+    output.removeChild(output.firstChild);
+  }
   hiddenInput.value = ''; typedText.textContent = '';
+  window.scrollTo(0, 0);
 }
 
 // ── Riddle ───────────────────────────────────────────────────────────────────
