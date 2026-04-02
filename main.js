@@ -313,25 +313,23 @@ let riddleState = {
 };
 
 const RIDDLE_LINES = [
-  "In Europe\u2019s grey halls where the questions ran deep,",
-  "Wiley stayed quiet \u2014 some secrets you keep.",
-  "But Socks held the bars, held the beats, held the crown,",
-  "smiled to your face while he burned Paper Boi down.",
-  "An ally, a garden, a whisper, a lie \u2014",
-  "remove all my ladders and watch the truth rise.",
+  "I was Medusa\u2019s crown.",
+  "I was Eden\u2019s downfall.",
+  "I am a language, a game, and a threat.",
+  "Find me here and the terminal will answer.",
   "What am I?",
 ];
 
 const HINTS = [
-  "hint: think about who smiled while holding the thing most precious to you.",
-  "hint: the garden had one too. so did the Radiohead tracklist.",
-  "hint: one word. it moves without legs. it\u2019s closer than you think.",
+  "hint: I have no legs but I can run.",
+  "hint: Python borrowed my name. I live in gardens and in code.",
+  "hint: one word. type it into this terminal and see what happens.",
 ];
 
 const STRIKE_TAUNTS = [
-  "not even close. try again.",
-  "still no. Wiley said nothing. maybe you should too until you\u2019re sure.",
-  "three strikes. clearly this isn\u2019t your episode. type <span class=\'glow-cmd\'>\'riddle\'</span> to reset and try again.",
+  "not quite. think about what Medusa and Eden have in common.",
+  "still no. the answer is also a programming language and something on this page.",
+  "three strikes. type <span class=\'glow-cmd\'>\'riddle\'</span> to reset and try again.",
 ];
 
 function enterRiddleMode() {
