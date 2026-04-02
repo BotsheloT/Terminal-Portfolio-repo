@@ -35,11 +35,21 @@ $$  __$$\\ \\__$$  __|      $$  __$$\\ $$  _____|$$ |   $$ |
                                                       \u00A9 2026`;
 
 // ── Terminal engine ──────────────────────────────────────────────────────────
-const output      = document.getElementById('output');
-const inputLine   = document.getElementById('input-line');
-const hiddenInput = document.getElementById('hidden-input');
-const typedText   = document.getElementById('typed-text');
+const output          = document.getElementById('output');
+const inputLine       = document.getElementById('input-line');
+const riddleInputLine = document.getElementById('riddle-input-line');
+const hiddenInput     = document.getElementById('hidden-input');
+const typedText       = document.getElementById('typed-text');
+const riddleTypedText = document.getElementById('riddle-typed-text');
 let locked = false;
+
+// Virtual riddle buffer — no real <input> element, keystrokes captured on document
+let riddleBuffer = '';
+
+function setRiddleBuffer(val) {
+  riddleBuffer = val;
+  riddleTypedText.textContent = val;
+}
 
 hiddenInput.addEventListener('input', () => {
   if (locked) { hiddenInput.value = ''; return; }
@@ -48,7 +58,7 @@ hiddenInput.addEventListener('input', () => {
 
 document.getElementById('terminal-root').addEventListener('click', e => {
   const ignore = e.target.closest('canvas, .snake-overlay, .snake-dpad, button');
-  if (!ignore) hiddenInput.focus();
+  if (!ignore && !riddleState.mode) hiddenInput.focus();
 });
 
 hiddenInput.focus();
@@ -70,12 +80,19 @@ function printBlank() {
   ins(d);
 }
 
-function printPrompt(cmd) {
+function printPrompt(cmd, isRiddle = false) {
   const d = document.createElement('div');
   d.className = 'line line--cmd';
-  d.innerHTML =
-    '<span class="prompt-label">visitor@btdev.com' +
-    '<span class="prompt-label__sep">:~$</span></span> ' + esc(cmd);
+  if (isRiddle) {
+    d.innerHTML =
+      '<span class="prompt-label">visitor@btdev.com' +
+      '<span class="prompt-label__riddle">{RIDDLE MODE}</span>' +
+      '<span class="prompt-label__sep">:~$</span></span> ' + esc(cmd);
+  } else {
+    d.innerHTML =
+      '<span class="prompt-label">visitor@btdev.com' +
+      '<span class="prompt-label__sep">:~$</span></span> ' + esc(cmd);
+  }
   ins(d);
 }
 
@@ -88,12 +105,22 @@ function scrollToBottom() {
   requestAnimationFrame(() => { output.scrollTop = output.scrollHeight; });
 }
 
-function hideInput() { inputLine.style.display = 'none'; }
+function hideInput() {
+  inputLine.style.display       = 'none';
+  riddleInputLine.style.display = 'none';
+}
+
 function showInput() {
-  inputLine.style.display = 'flex';
-  scrollToBottom();
-  // defer focus so it fires after any button-click blur events settle
-  setTimeout(() => { hiddenInput.focus(); }, 0);
+  if (riddleState && riddleState.mode) {
+    riddleInputLine.style.display = 'flex';
+    inputLine.style.display       = 'none';
+    scrollToBottom();
+  } else {
+    inputLine.style.display       = 'flex';
+    riddleInputLine.style.display = 'none';
+    scrollToBottom();
+    setTimeout(() => { hiddenInput.focus(); }, 0);
+  }
 }
 
 // ── Commands ─────────────────────────────────────────────────────────────────
@@ -106,6 +133,7 @@ const COMMANDS = {
   education:  cmdEducation,
   contact:    cmdContact,
   clear:      cmdClear,
+  riddle:     cmdRiddle,
   snake:      cmdSnake,
 };
 
@@ -113,30 +141,46 @@ function cmdHelp() {
   printBlank();
   print('available commands', 'purple');
   printBlank();
+
   const table = document.createElement('div');
   table.className = 'help-table';
-  [
-    ['neofetch',     'display profile overview'],
-    ['about',        'who i am'],
-    ['skills',       'tech stack & tools'],
-    ['experience',   'work history'],
-    ['education',    'academic background'],
-    ['contact',      'links & socials'],
-    ['clear',        'clear the terminal'],
-    ['help',         'show this help menu'],
-  ].forEach(([cmd, desc]) => {
+
+  // Base commands always visible
+  const baseCommands = [
+    ['neofetch',    'display profile overview'],
+    ['about',       'who i am'],
+    ['skills',      'tech stack & tools'],
+    ['experience',  'work history'],
+    ['education',   'academic background'],
+    ['contact',     'links & socials'],
+    ['clear',       'clear the terminal'],
+    ['help',        'show this help menu'],
+  ];
+
+  // Riddle and snake only show once solved
+  if (riddleState.solved) {
+    baseCommands.push(['riddle', 'revisit the riddle']);
+    baseCommands.push(['snake',  'you already know']);
+  }
+
+  baseCommands.forEach(([cmd, desc]) => {
     const k = document.createElement('div'); k.className = 'help-table__cmd';  k.textContent = cmd;
     const v = document.createElement('div'); v.className = 'help-table__desc'; v.textContent = desc;
     table.appendChild(k); table.appendChild(v);
   });
+
   ins(table);
   printBlank();
-  const hint = document.createElement('div');
-  hint.className = 'line line--muted';
-  hint.style.fontSize = '11px';
-  hint.textContent = 'psst... there might be a secret command hidden somewhere';
-  ins(hint);
-  printBlank();
+
+  // Only show the psst hint if the riddle hasn't been solved yet
+  if (!riddleState.solved) {
+    const hint = document.createElement('div');
+    hint.className = 'line line--muted';
+    hint.style.fontSize = '11px';
+    hint.innerHTML = "psst... type <span class='glow-cmd'>'riddle'</span> if you think you can handle a secret.";
+    ins(hint);
+    printBlank();
+  }
 }
 
 function cmdNeofetch() {
@@ -255,6 +299,135 @@ function cmdContact() {
 function cmdClear() {
   while (output.firstChild !== inputLine) output.removeChild(output.firstChild);
   hiddenInput.value = ''; typedText.textContent = '';
+}
+
+// ── Riddle ───────────────────────────────────────────────────────────────────
+let riddleState = {
+  mode:    false,  // true = user is in riddle mode (prompt changes)
+  strikes: 0,
+  solved:  false,
+  history: [],     // answers typed during this riddle session
+};
+
+const RIDDLE_LINES = [
+  "In Europe\u2019s grey halls where the questions ran deep,",
+  "Wiley stayed quiet \u2014 some secrets you keep.",
+  "But Socks held the bars, held the beats, held the crown,",
+  "smiled to your face while he burned Paper Boi down.",
+  "An ally, a garden, a whisper, a lie \u2014",
+  "remove all my ladders and watch the truth rise.",
+  "What am I?",
+];
+
+const HINTS = [
+  "hint: think about who smiled while holding the thing most precious to you.",
+  "hint: the garden had one too. so did the Radiohead tracklist.",
+  "hint: one word. it moves without legs. it\u2019s closer than you think.",
+];
+
+const STRIKE_TAUNTS = [
+  "not even close. try again.",
+  "still no. Wiley said nothing. maybe you should too until you\u2019re sure.",
+  "three strikes. clearly this isn\u2019t your episode. type <span class=\'glow-cmd\'>\'riddle\'</span> to reset and try again.",
+];
+
+function enterRiddleMode() {
+  riddleState.mode    = true;
+  riddleState.history = [];
+  setRiddleBuffer('');
+  inputLine.style.display       = 'none';
+  riddleInputLine.style.display = 'flex';
+  // blur the normal input so the browser stops tracking it
+  hiddenInput.blur();
+}
+
+function exitRiddleMode() {
+  riddleState.mode = false;
+  setRiddleBuffer('');
+  riddleInputLine.style.display = 'none';
+  inputLine.style.display       = 'flex';
+  setTimeout(() => hiddenInput.focus(), 0);
+}
+
+function cmdRiddle() {
+  // Reset strikes if locked out
+  if (riddleState.strikes >= 3) {
+    riddleState.strikes = 0;
+  }
+
+  // If already solved, just remind them
+  if (riddleState.solved) {
+    printBlank();
+    print("you already cracked it. the command is waiting.", "muted");
+    printBlank();
+    return;
+  }
+
+  printBlank();
+  print("\u2500\u2500 riddle mode activated \u2500\u2500", "purple");
+  printBlank();
+  RIDDLE_LINES.forEach(line => print(line, "yellow"));
+  printBlank();
+
+  if (riddleState.strikes > 0 && riddleState.strikes < 3) {
+    print(HINTS[riddleState.strikes - 1], "muted");
+    printBlank();
+  }
+
+  print("type your answer and press enter.", "muted");
+  printBlank();
+
+  enterRiddleMode();
+}
+
+function handleRiddleAnswer(val) {
+  const guess = val.trim().toLowerCase();
+
+  // Push to riddle history
+  riddleState.history.push(val);
+
+  printPrompt(val, true);
+
+  if (guess === 'snake') {
+    riddleState.solved = true;
+    exitRiddleMode();
+    printBlank();
+    print("\u2713  correct.", "green");
+    printBlank();
+    print("Socks knew. the garden knew. and now so do you.", "yellow");
+    print("the hidden command has been unlocked.", "muted");
+    printBlank();
+    // Unlock and show input immediately so the terminal is not stuck.
+    // Then after a readable pause, kick off the auto-type snake sequence.
+    locked = false;
+    showInput();
+    setTimeout(() => {
+      hideInput();
+      setTimeout(() => {
+        printPrompt('snake');
+        setTimeout(() => {
+          cmdSnake();
+        }, 600);
+      }, 800);
+    }, 1200);
+    return;
+  }
+
+  // Wrong answer
+  riddleState.strikes++;
+  printBlank();
+
+  if (riddleState.strikes >= 3) {
+    exitRiddleMode();
+    const d = document.createElement('div');
+    d.className = 'line line--error';
+    d.innerHTML = STRIKE_TAUNTS[2];
+    ins(d);
+  } else {
+    print(STRIKE_TAUNTS[riddleState.strikes - 1], 'error');
+    print(HINTS[riddleState.strikes - 1], 'muted');
+  }
+  printBlank();
 }
 
 // ── Snake ─────────────────────────────────────────────────────────────────────
@@ -447,20 +620,56 @@ function cmdSnake() {
   draw(); // idle screen
 }
 
-// ── Enter key handler ────────────────────────────────────────────────────────
+// ── Command history + input handler ─────────────────────────────────────────
+const cmdHistory = [];
+let historyIndex  = -1;
+
+// Shared history navigation logic
+function handleHistoryNav(e, input, textEl, history) {
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (history.length === 0) return;
+    if (historyIndex === -1) historyIndex = history.length;
+    historyIndex = Math.max(0, historyIndex - 1);
+    input.value = history[historyIndex];
+    textEl.textContent = history[historyIndex];
+    return true;
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (historyIndex === -1) return true;
+    historyIndex++;
+    if (historyIndex >= history.length) {
+      historyIndex = -1;
+      input.value = '';
+      textEl.textContent = '';
+    } else {
+      input.value = history[historyIndex];
+      textEl.textContent = history[historyIndex];
+    }
+    return true;
+  }
+  return false;
+}
+
+// ── Normal input handler ──────────────────────────────────────────────────
 hiddenInput.addEventListener('keydown', e => {
+  if (handleHistoryNav(e, hiddenInput, typedText, cmdHistory)) return;
   if (e.key !== 'Enter') return;
 
   const val = hiddenInput.value.trim();
   hiddenInput.value     = '';
   typedText.textContent = '';
+  historyIndex          = -1;
 
   printPrompt(val || '');
   hideInput();
 
   if (!val) { showInput(); return; }
 
-  const cmd = val.toLowerCase();
+  if (cmdHistory[cmdHistory.length - 1] !== val) cmdHistory.push(val);
+
+  const cmd = val.toLowerCase().trim();
   locked = true;
 
   setTimeout(() => {
@@ -476,11 +685,75 @@ hiddenInput.addEventListener('keydown', e => {
       ins(d); printBlank();
     }
     locked = false;
-    // snake manages its own scroll (scrolls to canvas top on load, exits back to input)
-    // all other commands simply show input and scroll to the bottom
     if (cmd !== 'snake') {
       showInput();
       scrollToBottom();
     }
   }, 750);
+});
+
+// ── Riddle virtual keyboard capture (no real <input> — prevents browser UI) ──
+document.addEventListener('keydown', e => {
+  if (!riddleState.mode) return;
+  if (locked) return;
+
+  // history navigation
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    const hist = riddleState.history;
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (hist.length === 0) return;
+      if (historyIndex === -1) historyIndex = hist.length;
+      historyIndex = Math.max(0, historyIndex - 1);
+      setRiddleBuffer(hist[historyIndex]);
+    } else {
+      e.preventDefault();
+      if (historyIndex === -1) return;
+      historyIndex++;
+      if (historyIndex >= hist.length) {
+        historyIndex = -1;
+        setRiddleBuffer('');
+      } else {
+        setRiddleBuffer(hist[historyIndex]);
+      }
+    }
+    return;
+  }
+
+  // prevent arrow keys scrolling the page
+  if (['ArrowLeft','ArrowRight'].includes(e.key)) return;
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = riddleBuffer.trim();
+    setRiddleBuffer('');
+    historyIndex = -1;
+    if (!val) { showInput(); return; }
+    locked = true;
+    hideInput();
+    setTimeout(() => {
+      handleRiddleAnswer(val);
+      locked = false;
+      if (riddleState.mode) {
+        showInput();
+        scrollToBottom();
+      } else if (!riddleState.solved) {
+        showInput();
+        scrollToBottom();
+      }
+    }, 750);
+    return;
+  }
+
+  if (e.key === 'Backspace') {
+    e.preventDefault();
+    setRiddleBuffer(riddleBuffer.slice(0, -1));
+    return;
+  }
+
+  // printable characters only (single char, not modifier combos)
+  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
+    setRiddleBuffer(riddleBuffer + e.key);
+  }
 });
