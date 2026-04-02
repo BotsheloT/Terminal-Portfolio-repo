@@ -155,6 +155,10 @@ html, body {
   color: #6c7086;
 }
 
+.prompt-label__riddle {
+  color: #cba6f7;
+}
+
 .fake-input {
   display: flex;
   align-items: center;

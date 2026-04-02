@@ -24,15 +24,23 @@
 
   <!-- Output + inline input -->
   <div class="output-area" id="output">
+    <!-- Normal prompt -->
     <div class="input-inline" id="input-line">
-      <span class="prompt-label">
-        visitor@btdev.com<span class="prompt-label__sep">:~$</span>
-      </span>
+      <span class="prompt-label">visitor@btdev.com<span class="prompt-label__sep">:~$</span></span>
       <div class="fake-input">
         <span class="fake-input__text"  id="typed-text"></span>
         <span class="fake-input__caret" id="caret"></span>
       </div>
-      <input id="hidden-input" type="text" autocomplete="off" spellcheck="false" autofocus />
+      <input id="hidden-input" type="text" autocomplete="new-password" spellcheck="false" name="terminal-cmd-x9z" autofocus />
+    </div>
+
+    <!-- Riddle prompt (hidden until riddle mode is active) -->
+    <div class="input-inline" id="riddle-input-line" style="display:none;">
+      <span class="prompt-label">visitor@btdev.com<span class="prompt-label__riddle">{RIDDLE MODE}</span><span class="prompt-label__sep">:~$</span></span>
+      <div class="fake-input">
+        <span class="fake-input__text"  id="riddle-typed-text"></span>
+        <span class="fake-input__caret" id="riddle-caret"></span>
+      </div>
     </div>
   </div>
 
