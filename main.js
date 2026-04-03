@@ -188,12 +188,17 @@ function cmdNeofetch() {
   const wrap  = document.createElement('div'); wrap.className  = 'neo';
   const ascii = document.createElement('div'); ascii.className = 'neo__ascii';
   ascii.textContent =
-    ' \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\n' +
-    ' \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u255A\u2550\u2550\u2588\u2588\u2554\u2550\u2550\u255D\n' +
-    ' \u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D   \u2588\u2588\u2551   \n' +
-    ' \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557   \u2588\u2588\u2551   \n' +
-    ' \u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D   \u2588\u2588\u2551   \n' +
-    ' \u255A\u2550\u2550\u2550\u2550\u2550\u255D    \u255A\u2550\u255D   ';
+    "    __                      __\n" +
+    " .-'  `'.._...-----..._..-`  '-.\n" +
+    "/                                \\\n" +
+    "|  ,   ,'                '.   ,  |\n" +
+    " \\  '-/                    \\-'  /\n" +
+    "  '._|          _           |_.'\n" +
+    "     |    /\\   / \\    /\\    |\n" +
+    "     |    \\/   | |    \\/    |\n" +
+    "      \\        \\\"/         /\n" +
+    "       '.    ==\"'\"==     .'\n" +
+    "         `'------------'`";
   const info  = document.createElement('div'); info.className  = 'neo__info';
   const title = document.createElement('div'); title.className = 'neo__title';
   title.textContent = 'visitor@btdev.com';
